@@ -1,0 +1,204 @@
+{
+  "entities": {
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Publicly visible marketplace user profile (non-PII).",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "photoURL": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "stateId": { "type": "string", "minLength": 0, "maxLength": 64 },
+        "city": { "type": "string", "minLength": 0, "maxLength": 64 },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "isBanned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "role", "isBanned", "createdAt", "updatedAt"]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Isolated PII contact details for a marketplace user.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "minLength": 0, "maxLength": 120 },
+        "phone": { "type": "string", "minLength": 0, "maxLength": 30 },
+        "whatsapp": { "type": "string", "minLength": 0, "maxLength": 30 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted administrator lookup document.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Marketplace listing category.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nameAr": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "icon": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "order": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "nameAr", "slug", "icon", "order", "isActive", "createdAt", "updatedAt"]
+    },
+    "SudanState": {
+      "title": "SudanState",
+      "description": "Sudanese state and its cities.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nameAr": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "cities": { "type": "array" },
+        "order": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "nameAr", "cities", "order", "isActive", "createdAt", "updatedAt"]
+    },
+    "Listing": {
+      "title": "Listing",
+      "description": "Classified advertisement listing in Souq Al-Nile.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "ownerPhoto": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "title": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 10, "maxLength": 3000 },
+        "price": { "type": "number" },
+        "currency": { "type": "string", "enum": ["SDG", "USD"] },
+        "negotiable": { "type": "boolean" },
+        "categoryId": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoryName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "stateId": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "stateName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "city": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "condition": { "type": "string", "enum": ["new", "used", "unspecified"] },
+        "contactPhone": { "type": "string", "minLength": 6, "maxLength": 30 },
+        "contactWhatsapp": { "type": "string", "minLength": 0, "maxLength": 30 },
+        "images": { "type": "array" },
+        "status": { "type": "string", "enum": ["active", "pending", "sold", "rejected"] },
+        "isFeatured": { "type": "boolean" },
+        "views": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerId", "ownerName", "title", "description", "price", "currency",
+        "negotiable", "categoryId", "categoryName", "stateId", "stateName",
+        "city", "condition", "contactPhone", "images", "status",
+        "isFeatured", "views", "createdAt", "updatedAt"
+      ]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "User saved favorite listing.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "listingId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "listingId", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "User submitted abuse/spam report on a listing.",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "reporterName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "listingId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "listingTitle": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "reason": { "type": "string", "enum": ["spam", "fraud", "prohibited", "wrong_category", "other"] },
+        "details": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "status": { "type": "string", "enum": ["open", "resolved", "dismissed"] },
+        "adminNote": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reporterId", "reporterName", "listingId", "listingTitle", "reason", "status", "createdAt", "updatedAt"]
+    },
+    "PlatformSettings": {
+      "title": "PlatformSettings",
+      "description": "Global marketplace configuration managed by admins.",
+      "type": "object",
+      "properties": {
+        "requireApproval": { "type": "boolean" },
+        "noticeText": { "type": "string", "minLength": 0, "maxLength": 300 },
+        "seeded": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["requireApproval", "seeded", "updatedAt"]
+    },
+    "ListingStat": {
+      "title": "ListingStat",
+      "description": "View counter record for a marketplace listing.",
+      "type": "object",
+      "properties": {
+        "listingId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "views": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["listingId", "views", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublic" },
+      "description": "Public user profile documents."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivate" },
+      "description": "Private PII subcollection restricted to owner and admins."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Admin role registry."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Marketplace categories."
+    },
+    "/states/{stateId}": {
+      "schema": { "$ref": "#/entities/SudanState" },
+      "description": "Sudanese states and cities."
+    },
+    "/listings/{listingId}": {
+      "schema": { "$ref": "#/entities/Listing" },
+      "description": "Marketplace classified listings."
+    },
+    "/listing_stats/{listingId}": {
+      "schema": { "$ref": "#/entities/ListingStat" },
+      "description": "View counters for listings."
+    },
+    "/favorites/{favoriteId}": {
+      "schema": { "$ref": "#/entities/Favorite" },
+      "description": "User favorite listing links."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "User reports on listings."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/PlatformSettings" },
+      "description": "Platform global settings."
+    }
+  }
+}

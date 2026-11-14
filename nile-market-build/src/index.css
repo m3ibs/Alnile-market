@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --nile-red: #D80605;
+    --nile-red-dark: #A90505;
+    --nile-black: #101010;
+    --nile-white: #FFFFFF;
+    --nile-gray: #808080;
+    --nile-gray-light: #F1F2F4;
+    --nile-border: #E5E7EB;
+    --nile-green: #187344;
+    --nile-whatsapp: #16834B;
+    --glass: rgba(255, 255, 255, 0.82);
+    --soft-shadow: 0 16px 44px rgba(16, 16, 16, 0.08);
+    --font-display: 'Cairo', 'IBM Plex Sans Arabic', sans-serif;
+    --font-body: 'Cairo', 'IBM Plex Sans Arabic', Tahoma, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  html {
+    font-family: var(--font-body);
+    scroll-behavior: smooth;
+    overflow-x: clip;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at 8% 0%, rgba(216, 6, 5, 0.045), transparent 32%),
+      linear-gradient(180deg, #fbfbfc 0%, #f4f5f7 100%);
+    min-height: 100vh;
+    color: #171717;
+    overflow-x: clip;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-mono-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.site-navbar {
+  background: rgba(13, 13, 15, 0.92);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14);
+}
+
+.nav-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 12px;
+  padding: 3px 6px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.18);
+}
+
+@media (min-width: 640px) {
+  .nav-logo-wrap {
+    border-radius: 14px;
+    padding: 4px 9px;
+  }
+}
+
+.hero-search {
+  position: relative;
+}
+
+.card-listing {
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--soft-shadow);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card-listing:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(16, 16, 16, 0.13);
+}
+
+.site-footer {
+  background: linear-gradient(135deg, #101010, #242426);
+  border-radius: 24px 24px 0 0;
+}
+
+@media (min-width: 640px) {
+  .site-footer {
+    border-radius: 32px 32px 0 0;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-balance {
+  text-wrap: balance;
+}

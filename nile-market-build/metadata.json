@@ -1,0 +1,6 @@
+{
+  "name": "سوق النيل للسودانيين | Souq Al-Nile",
+  "description": "منصة سوق النيل للإعلانات المبوبة والتجارة الإلكترونية للسودانيين في جميع الولايات والمدن — بيع وشراء العقارات والسيارات والإلكترونيات والخدمات بأمان.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

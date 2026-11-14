@@ -1,0 +1,478 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Boot connection health check document
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // =========================================================================
+    // Hardened Global Helpers
+    // =========================================================================
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isPrimaryAdminEmail() {
+      return isVerifiedUser() && request.auth.token.email == 'mo3iusa@gmail.com';
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'mo3iusa@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isNotBanned() {
+      return isVerifiedUser() && (
+        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBanned == false
+      );
+    }
+
+    // =========================================================================
+    // Entity Validation Blueprints
+    // =========================================================================
+
+    function isValidUserPublic(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'isBanned', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'stateId', 'city', 'role', 'isBanned', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && (data.uid == request.auth.uid || isAdmin())
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!('stateId' in data) || (data.stateId is string && data.stateId.size() <= 64))
+        && (!('city' in data) || (data.city is string && data.city.size() <= 64))
+        && data.role in ['user', 'admin']
+        && data.isBanned is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['email', 'updatedAt'])
+        && data.keys().hasOnly(['email', 'phone', 'whatsapp', 'updatedAt'])
+        && data.email is string && data.email.size() <= 120
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 30))
+        && (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 30))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'email', 'createdAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 120
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['id', 'nameAr', 'slug', 'icon', 'order', 'isActive', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'nameAr', 'slug', 'icon', 'order', 'isActive', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.nameAr is string && data.nameAr.size() >= 1 && data.nameAr.size() <= 60
+        && data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 60
+        && data.icon is string && data.icon.size() >= 1 && data.icon.size() <= 40
+        && data.order is number && data.order >= 0 && data.order <= 1000
+        && data.isActive is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidState(data) {
+      return data.keys().hasAll(['id', 'nameAr', 'cities', 'order', 'isActive', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'nameAr', 'cities', 'order', 'isActive', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.nameAr is string && data.nameAr.size() >= 1 && data.nameAr.size() <= 60
+        && data.cities is list && data.cities.size() >= 1 && data.cities.size() <= 30
+        && data.cities[0] is string && data.cities[0].size() >= 1 && data.cities[0].size() <= 60
+        && data.order is number && data.order >= 0 && data.order <= 1000
+        && data.isActive is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidListing(data) {
+      return data.keys().hasAll([
+          'ownerId', 'ownerName', 'title', 'description', 'price', 'currency',
+          'negotiable', 'categoryId', 'categoryName', 'stateId', 'stateName',
+          'city', 'condition', 'contactPhone', 'images', 'status',
+          'isFeatured', 'views', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'ownerName', 'ownerPhoto', 'title', 'description', 'price', 'currency',
+          'negotiable', 'categoryId', 'categoryName', 'stateId', 'stateName',
+          'city', 'condition', 'contactPhone', 'contactWhatsapp', 'images', 'status',
+          'isFeatured', 'views', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && (data.ownerId == request.auth.uid || isAdmin())
+        && data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 80
+        && (!('ownerPhoto' in data) || (data.ownerPhoto is string && data.ownerPhoto.size() <= 500))
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 120
+        && data.description is string && data.description.size() >= 10 && data.description.size() <= 3000
+        && data.price is number && data.price >= 0 && data.price <= 100000000000
+        && data.currency in ['SDG', 'USD']
+        && data.negotiable is bool
+        && isValidId(data.categoryId)
+        && data.categoryName is string && data.categoryName.size() >= 1 && data.categoryName.size() <= 60
+        && isValidId(data.stateId)
+        && data.stateName is string && data.stateName.size() >= 1 && data.stateName.size() <= 60
+        && data.city is string && data.city.size() >= 1 && data.city.size() <= 60
+        && data.condition in ['new', 'used', 'unspecified']
+        && data.contactPhone is string && data.contactPhone.size() >= 6 && data.contactPhone.size() <= 30
+        && (!('contactWhatsapp' in data) || (data.contactWhatsapp is string && data.contactWhatsapp.size() <= 30))
+        && data.images is list && data.images.size() <= 6
+        && (data.images.size() == 0 || (data.images[0] is string && data.images[0].size() <= 350000))
+        && data.status in ['active', 'pending', 'sold', 'rejected']
+        && data.isFeatured is bool
+        && data.views is number && data.views >= 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidListingStat(data) {
+      return data.keys().hasAll(['listingId', 'views', 'updatedAt'])
+        && data.keys().hasOnly(['listingId', 'views', 'updatedAt'])
+        && isValidId(data.listingId)
+        && data.views is number && data.views >= 1
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFavorite(data) {
+      return data.keys().hasAll(['userId', 'listingId', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'listingId', 'createdAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && isValidId(data.listingId)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['reporterId', 'reporterName', 'listingId', 'listingTitle', 'reason', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['reporterId', 'reporterName', 'listingId', 'listingTitle', 'reason', 'details', 'status', 'adminNote', 'createdAt', 'updatedAt'])
+        && isValidId(data.reporterId)
+        && (data.reporterId == request.auth.uid || isAdmin())
+        && data.reporterName is string && data.reporterName.size() >= 1 && data.reporterName.size() <= 80
+        && isValidId(data.listingId)
+        && data.listingTitle is string && data.listingTitle.size() >= 1 && data.listingTitle.size() <= 120
+        && data.reason in ['spam', 'fraud', 'prohibited', 'wrong_category', 'other']
+        && (!('details' in data) || (data.details is string && data.details.size() <= 500))
+        && data.status in ['open', 'resolved', 'dismissed']
+        && (!('adminNote' in data) || (data.adminNote is string && data.adminNote.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPlatformSettings(data) {
+      return data.keys().hasAll(['requireApproval', 'seeded', 'updatedAt'])
+        && data.keys().hasOnly(['requireApproval', 'noticeText', 'seeded', 'updatedAt'])
+        && data.requireApproval is bool
+        && (!('noticeText' in data) || (data.noticeText is string && data.noticeText.size() <= 300))
+        && data.seeded is bool
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collections
+    // =========================================================================
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId)
+        && isVerifiedUser()
+        && isValidUserPublic(incoming())
+        && isOwner(userId)
+        && incoming().uid == userId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().isBanned == false
+        && (incoming().role == 'user' || (incoming().role == 'admin' && isPrimaryAdminEmail()));
+
+      allow update: if isValidId(userId)
+        && isVerifiedUser()
+        && isValidUserPublic(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (
+            isOwner(userId)
+            && incoming().role == existing().role
+            && incoming().isBanned == existing().isBanned
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'stateId', 'city', 'updatedAt'])
+          ) || (
+            isAdmin()
+            && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'isBanned', 'displayName', 'stateId', 'city', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /private/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && docId == 'info' && (isOwner(userId) || isAdmin());
+        allow list: if false;
+
+        allow create: if isValidId(userId)
+          && isValidId(docId)
+          && docId == 'info'
+          && isVerifiedUser()
+          && isOwner(userId)
+          && isValidUserPrivate(incoming())
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(userId)
+          && isValidId(docId)
+          && docId == 'info'
+          && isVerifiedUser()
+          && isValidUserPrivate(incoming())
+          && incoming().updatedAt == request.time
+          && (isOwner(userId) || isAdmin())
+          && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'phone', 'whatsapp', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(docId) && isAdmin();
+      }
+    }
+
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(adminId)
+        && isVerifiedUser()
+        && isValidAdminRecord(incoming())
+        && incoming().uid == adminId
+        && incoming().createdAt == request.time
+        && (isAdmin() || (isOwner(adminId) && isPrimaryAdminEmail()));
+
+      allow update: if false;
+      allow delete: if isValidId(adminId) && isAdmin() && adminId != request.auth.uid;
+    }
+
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && (resource.data.isActive == true || isAdmin());
+      allow list: if resource.data.isActive == true || isAdmin();
+
+      allow create: if isValidId(categoryId)
+        && isAdmin()
+        && isValidCategory(incoming())
+        && incoming().id == categoryId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(categoryId)
+        && isAdmin()
+        && isValidCategory(incoming())
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['nameAr', 'slug', 'icon', 'order', 'isActive', 'updatedAt']);
+
+      allow delete: if isValidId(categoryId) && isAdmin();
+    }
+
+    match /states/{stateId} {
+      allow get: if isValidId(stateId) && (resource.data.isActive == true || isAdmin());
+      allow list: if resource.data.isActive == true || isAdmin();
+
+      allow create: if isValidId(stateId)
+        && isAdmin()
+        && isValidState(incoming())
+        && incoming().id == stateId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(stateId)
+        && isAdmin()
+        && isValidState(incoming())
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['nameAr', 'cities', 'order', 'isActive', 'updatedAt']);
+
+      allow delete: if isValidId(stateId) && isAdmin();
+    }
+
+    match /listings/{listingId} {
+      allow get: if isValidId(listingId) && (
+        resource.data.status == 'active' ||
+        (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()))
+      );
+      allow list: if resource.data.status == 'active' ||
+        (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
+
+      allow create: if isValidId(listingId)
+        && isVerifiedUser()
+        && isValidListing(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().views == 0
+        && exists(/databases/$(database)/documents/categories/$(incoming().categoryId))
+        && exists(/databases/$(database)/documents/states/$(incoming().stateId))
+        && (
+          isAdmin() || (
+            incoming().ownerId == request.auth.uid
+            && incoming().isFeatured == false
+            && incoming().status in ['active', 'pending']
+            && isNotBanned()
+          )
+        );
+
+      allow update: if isValidId(listingId)
+        && isVerifiedUser()
+        && isValidListing(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Owner edits own non-rejected listing
+          (
+            isNotBanned()
+            && existing().ownerId == request.auth.uid
+            && existing().status != 'rejected'
+            && incoming().isFeatured == existing().isFeatured
+            && incoming().views == existing().views
+            && incoming().status in ['active', 'pending', 'sold']
+            && exists(/databases/$(database)/documents/categories/$(incoming().categoryId))
+            && exists(/databases/$(database)/documents/states/$(incoming().stateId))
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'description', 'price', 'currency', 'negotiable',
+              'categoryId', 'categoryName', 'stateId', 'stateName', 'city',
+              'condition', 'contactPhone', 'contactWhatsapp', 'images', 'status', 'updatedAt'
+            ])
+          ) ||
+          // Action 2: Admin moderation & feature toggle
+          (
+            isAdmin()
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'description', 'price', 'currency', 'negotiable',
+              'categoryId', 'categoryName', 'stateId', 'stateName', 'city',
+              'condition', 'contactPhone', 'contactWhatsapp', 'images',
+              'status', 'isFeatured', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isValidId(listingId) && (
+        isAdmin() || (isVerifiedUser() && existing().ownerId == request.auth.uid)
+      );
+    }
+
+    match /listing_stats/{listingId} {
+      allow get: if isValidId(listingId);
+      allow list: if resource.data.views >= 0;
+
+      allow create: if isValidId(listingId)
+        && isValidListingStat(incoming())
+        && incoming().listingId == listingId
+        && incoming().views == 1
+        && incoming().updatedAt == request.time
+        && get(/databases/$(database)/documents/listings/$(listingId)).data.status == 'active';
+
+      allow update: if isValidId(listingId)
+        && isValidListingStat(incoming())
+        && incoming().listingId == existing().listingId
+        && incoming().views == existing().views + 1
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['views', 'updatedAt'])
+        && get(/databases/$(database)/documents/listings/$(listingId)).data.status == 'active';
+
+      allow delete: if isValidId(listingId) && isAdmin();
+    }
+
+    match /favorites/{favoriteId} {
+      allow get: if isValidId(favoriteId) && isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isValidId(favoriteId)
+        && isVerifiedUser()
+        && isNotBanned()
+        && isValidFavorite(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/listings/$(incoming().listingId));
+
+      allow update: if false;
+      allow delete: if isValidId(favoriteId) && isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /reports/{reportId} {
+      allow get: if isValidId(reportId) && isSignedIn() && (
+        resource.data.reporterId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.reporterId == request.auth.uid || isAdmin()
+      );
+
+      allow create: if isValidId(reportId)
+        && isVerifiedUser()
+        && isNotBanned()
+        && isValidReport(incoming())
+        && incoming().reporterId == request.auth.uid
+        && incoming().status == 'open'
+        && (!('adminNote' in incoming()) || incoming().adminNote == '')
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/listings/$(incoming().listingId));
+
+      allow update: if isValidId(reportId)
+        && isAdmin()
+        && isValidReport(incoming())
+        && incoming().reporterId == existing().reporterId
+        && incoming().listingId == existing().listingId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
+
+      allow delete: if isValidId(reportId) && isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if false;
+
+      allow create: if isValidId(settingId)
+        && isAdmin()
+        && isValidPlatformSettings(incoming())
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(settingId)
+        && isAdmin()
+        && isValidPlatformSettings(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['requireApproval', 'noticeText', 'seeded', 'updatedAt']);
+
+      allow delete: if false;
+    }
+  }
+}
